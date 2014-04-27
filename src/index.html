@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Houseflies</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+
+		<style type="text/css" media="screen">
+
+		body { background-color: #000; color: #999; margin: 0; padding: 0; text-align: center; font-family: Arial, sans-serif; }
+
+        header{ display: inline-block; text-align: center; display: inline-block; background-color: rgba( 0, 0, 0, 0.5 ); text-align: center; margin: 0 auto; padding: 0.25em 1em; border-radius: 0 0 0.5em 0.5em; }
+            header h1 { margin: 0; padding: 0; }
+            header p { margin: 0.25em; padding: 0; }
+
+        a { color: #5e98ff; text-decoration: underline; }
+        a:hover { text-decoration: none; }
+
+		canvas { position: absolute; top: 10px; background-color: #000; display: inline-block; z-index: -1; }
+
+        /**
+         * DAT.gui overrides to indicate key handlers
+         */
+        .dg.ac { text-align: left; }
+        .dg.ac li.cr.function .property-name:first-letter { text-decoration: underline; }
+
+
+		</style>
+	</head>
+	<body>
+		
+
+        <header>
+            <h1>Houseflies</h1>
+        </header>
+
+		<canvas />
+
+        <script type="text/javascript" src="js/dat.gui.min.js"></script>
+		<script type="text/javascript" src="js/requestAnimationFrame.min.js"></script>
+		<script type="text/javascript" src="js/stats.min.js"></script>
+		<script type="text/javascript" src="houseflies.js"></script>
+
+	</body>
+</html>

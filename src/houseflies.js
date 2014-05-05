@@ -1,493 +1,398 @@
 
 
 
-var stats;
-
-
-var spacing = 20;
-var canvas = document.getElementsByTagName( "canvas" )[ 0 ];
-var context = canvas.getContext( '2d' );
-var velocity = 5;
-
-
-var interval;
-var bounds = { t: 0, r: 0, b: 0, l: 0 };
-
-var rows;
-var cols;
-
-
-
-var debug = true;
-var debugTotals = { updates: 0, calcs: 0, max: 0 }
-
-
-
 function Point( x, y )
 {
-	this.x = x || 0;
-	this.y = y || 0;
-	// console.log( this );
+    this.x = x || 0;
+    this.y = y || 0;
 }
+
+    Point.polar = function( l, a )
+    {
+        var x = Math.round( l * Math.cos( a ) );
+        var y = Math.round( l * Math.sin( a ) );
+        return new Point( x, y );
+    };
+
 
 function Agent( x, y, v )
 {
-	this.p = new Point( x, y );
-	this.v = v || new Point();	// Vector
-	this.a = 0; 				// Angle
-	this.draw = false;
-	this.created = new Date();
-}
+    this.draw = false;
+    this.created = new Date();
+    this.p = new Point( x, y );
+    this.a = 0;     // Angle
+    this.v = 0;     // Velocity
 
-
-
-
-function resize()
-{
-	// Should probably do something fancy re: resizing, but nothing for now
-	if ( true )
-	{
-		var width = Math.floor( window.innerWidth / spacing );
-		canvas.width = width * spacing - spacing;
-		canvas.style.left = ( window.innerWidth - canvas.width ) * 0.5 + 'px';
-
-		var height = Math.floor( window.innerHeight / spacing );
-		canvas.height = height * spacing - spacing;
-	}
-	else
-	{
-		canvas.style.position = 'relative';
-	}
-
-
-	if ( ! junctionCanvas )
-	{
-		junctionCanvas = document.createElement( 'canvas' );
-		junctionContext = junctionCanvas.getContext( '2d' );
-	}
-
-	junctionCanvas.width = canvas.width;
-	junctionCanvas.height = canvas.height;
-    junctionContext.fillStyle = '#000';
-    junctionContext.fillRect( 0, 0, canvas.width, canvas.height );
-
-
-	rows = canvas.height / spacing;
-	cols = canvas.width / spacing;
-
-
-	bounds.t = 0 + spacing;
-	bounds.r = canvas.width - spacing;
-	bounds.b = canvas.height - spacing;
-	bounds.l = 0 + spacing;
-
-
-	var arr = [];
-	for ( var i = 0; i < houseFlies.agents.length; i++ )
-	{
-		if ( ! outOfBounds( houseFlies.agents[ i ].p ) )
-		{
-			arr.push( houseFlies.agents[ i ] );
-		}
-	}
-    houseFlies.agents = arr;
-}
-
-
-function init()
-{
-	if ( debug )
-	{
-		stats = new Stats();
-		stats.setMode(0);
-		stats.domElement.style.position = 'absolute';
-		stats.domElement.style.left = '0px';
-		stats.domElement.style.top = '0px';
-		document.body.appendChild( stats.domElement );
-	}
-
-
-    houseFlies = new HouseFlyAgents();
-    gui = new dat.GUI();
-    gui.add(houseFlies, 'message');
-    gui.add(houseFlies, 'flies', 1, 250).step( 1 );
-    gui.add(houseFlies, 'timeSpawn', 0, 5000 );
-    gui.add(houseFlies, 'fade');
-    gui.add(houseFlies, 'reset');
-    gui.add(houseFlies, 'playPause');
-    var f1 = gui.addFolder( 'debug' );
-    f1.add(houseFlies, 'fliesCurrent').listen();
-    f1.add(houseFlies, 'calcs').listen();
-    // console.log( gui );
-
-
-    resize();
-
-
-    buildCache();
-	playPauseHandler();
-
-
-    document.body.addEventListener( 'keypress', keyHandler );
-}
-
-
-var gui;
-var houseFlies;
-var HouseFlyAgents = function()
-{
-    this.message = 'House Fly Agents';
-    this.flies = 50;
-    this.fliesCurrent = 0;
-    this.timeSpawn = 650;
-    this.fade = true;
-    this.reset = resetHandler;
-    this.playPause = playPauseHandler;
-
-    this.agents = [];
-    this.calcs = '0';
-};
-
-
-
-function addAgent()
-{
-	var start = getRandomStartPoint();
-	var agent = new Agent();
-	agent.p.y = start.y;
-	agent.p.x = start.x;
-	agent.a = getNewAngle( agent );
-	agent.v = getRandomVector();
-
-    houseFlies.agents.push( agent );
-}
-
-
-
-function resetHandler()
-{
-    junctionContext.globalAlpha = 1;
-    junctionContext.globalCompositeOperation = 'source-over';
-    junctionContext.fillStyle = '#000';
-    junctionContext.fillRect( 0, 0, canvas.width, canvas.height );
-
-    // this.flies = 0;
-    // houseFlies.flies = 0;
-    houseFlies.agents = [];
-    houseFlies.calcs = '0';
-}
-
-
-function keyHandler( e )
-{
-    // console.log( 'Key pressed:', e.charCode );
-    if ( e.charCode == 112 || e.charCode == 80 ) // p
-        playPauseHandler();
-
-    if ( e.charCode == 114 || e.charCode == 82 ) // r
-        resetHandler();
-}
-
-
-function playPauseHandler( e )
-{
-	// console.log( 'playPause:', interval );
-	if ( ! interval )
-	{
-		if ( houseFlies.agents.length == 0 )
-		{
-			addAgent();
-		}
-
-		interval = requestAnimationFrame( update );
-	}
-	else
-	{
-		// clearInterval( interval );
-		cancelAnimationFrame( interval );
-		interval = null;
-	}
-}
-
-
-
-
-// Needs to be rewritten to use flat list of grid points
-function getRandomStartPoint()
-{
-	var start = new Point( Math.floor( cols * 0.5 ), Math.floor( rows * 0.5 ) );
-	start.x *= spacing;
-	start.y *= spacing;
-	return start;
-}
-
-
-
-function update()
-{
-	if ( interval == null ) return;
-
-	if ( debug ) stats.begin();
-
-	requestAnimationFrame( update );
-
-	draw();
-
-	var agent;
-	for ( var i = 0; i < houseFlies.agents.length; i++ )
-	{
-		agent = houseFlies.agents[ i ];
-		if ( isJunction( agent.p ) )
-		{
-			agent.draw = true;
-
-
-			var a = getNewAngle( agent );
-			if ( isAtBoundary( agent.p ) )
-			{
-				var calcs = 0;
-				debugTotals.updates++;
-
-				// console.log( 'At boundary' )
-				debugTotals.calcs++;
-
-				var w = 0;
-				while ( goingOutOfBounds( agent.p, a ) )
-				{
-					calcs++;
-					debugTotals.calcs++;
-
-					if ( calcs > debugTotals.max )
-						debugTotals.max = calcs;
-
-					if ( w > 50 )
-					{
-						console.log( 'Exiting; caught in a while loop' );
-						clearInterval( interval );
-						interval = null;
-						break;
-					}
-
-					// console.log( 'Out of bounds:', getNewVector( a ) );
-					a = getNewAngle( agent );
-
-					w++;
-				}
-			}
-
-			agent.a = a;
-			agent.v = getNewVector( a );
-		}
-	}
-
-
-	if ( houseFlies.agents.length < houseFlies.flies )
-	{
-        if ( houseFlies.agents.length == 0
-                || ( houseFlies.agents.length >= 1
-                        && new Date().getTime() - houseFlies.agents[ houseFlies.agents.length - 1 ].created.getTime() > houseFlies.timeSpawn
-                        )
-                )
-        {
-            addAgent();
-        }
-	}
-    else if ( houseFlies.agents.length > houseFlies.flies )
+    this.vec = function()
     {
-        // Think of the children!
-        houseFlies.agents = houseFlies.agents.slice( houseFlies.agents.length - houseFlies.flies );
-    }
+        return Point.polar( this.v, this.a );
+    };
 
+    this.getNewAngles = function()
+    {
+        var rand = [];
+        var arr = [];
+        arr.push( this.a + -0.5 * Math.PI );
+        arr.push( this.a );
+        arr.push( this.a + 0.5 * Math.PI );
 
+        var pos;
+        for ( var i = arr.length; i > -1; i-- )
+        {
+            pos = Math.floor( Math.random() * ( arr.length ) );
+            rand.push( arr.splice( pos, 1 )[ 0 ] );
+        }
 
-    houseFlies.fliesCurrent = houseFlies.agents.length;
+        return rand;
+    };
 
-
-
-	if ( debugTotals.updates > 1 && debugTotals.updates % 60 == 0 )
-	{
-        houseFlies.calcs = Number( debugTotals.calcs / debugTotals.updates ).toFixed( 5 );
-		// document.getElementById( 'calcsNumber' ).innerHTML = Number( debugTotals.calcs / debugTotals.updates ).toFixed( 5 );
-	}
-
-
-
-	if ( debug ) stats.end();
+    this.getNextPosition = function( a )
+    {
+        var vec = Point.polar( this.v, a );
+        return new Point( this.p.x + vec.x, this.p.y + vec.y );
+    };
 }
 
 
 
-
-function isJunction( p )
-{
-	if ( p.x % spacing == 0
-			&& p.y % spacing == 0
-			)
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-
-function isAtBoundary( p )
-{
-	if ( p.x == bounds.r
-			|| p.x == bounds.l
-			)
-	{
-		return true;
-	}
-	else if ( p.y == bounds.t
-				|| p.y == bounds.b
-				)
-	{
-		return true;
-	}
-
-	return false;
-}
-
-
-
-
-
-function goingOutOfBounds( p, a )
-{
-	var v = getNewVector( a );
-	var next = new Point( p.x + v.x, p.y + v.y );
-
-	if ( next.x < bounds.l
-			|| next.x > bounds.r
-			)
-	{
-		return true;
-	}
-	else if ( next.y < bounds.t
-				|| next.y > bounds.b
-				)
-	{
-		return true;
-	}
-
-	return false;
-}
-
-
-function outOfBounds( p )
-{
-	if ( p.x < bounds.l
-			|| p.x > bounds.r
-			)
-	{
-		return true;
-	}
-	else if ( p.y < bounds.t
-				|| p.y > bounds.b
-				)
-	{
-		return true;
-	}
-
-	return false;
-}
-
-
-function getNewAngle( agent )
-{
-	var newAngle = Math.floor( Math.random() * 3 ) - 1;
-	newAngle *= 0.5;
-	// console.log( newAngle );
-
-	return agent.a + newAngle * Math.PI;
-}
-
-function getNewVector( a )
-{
-    var x = Math.round( velocity * Math.cos( a ) );
-    var y = Math.round( velocity * Math.sin( a ) );
-
-    return new Point( x, y ); 
-}
-
-function getRandomVector()
-{
-	var rand = Math.floor( Math.random() * 4 );
-
-	switch( rand )
-	{
-		case 0:
-			v = new Point( velocity, 0 );
-			break;
-
-		case 1:
-			v = new Point( 0, velocity );
-			break;
-
-		case 2:
-			v = new Point( -velocity, 0 );
-			break;
-
-		case 3:
-			v = new Point( 0, -velocity );
-			break;
-	}
-
-	return v;
-}
-
-
-
+var canvas = document.getElementsByTagName( "canvas" )[ 0 ];
+var context = canvas.getContext( '2d' );
 
 var junctionCanvas;
 var junctionContext;
 
-function draw()
+
+var debug = true;
+var debugTotals = { updates: 0, calcs: 0, max: 0 }
+var stats, gui, houseFlies;
+
+
+var HouseFlyAgents = function()
 {
-    if ( houseFlies.fade )
+    this.spacing = 20;
+    this.bounds = { t: 0, r: 0, b: 0, l: 0 };
+    this.rows;
+    this.cols;
+    this.interval;
+    this.velocity = 5;
+
+
+    this.fliesMax = 250; // Max
+    this.fliesCurrent = 0;
+    this.timeSpawn = 350;
+    this.fadeOut = true;
+
+    this.agents = [];
+    this.calcs = '0';
+
+
+
+    this.init = function()
     {
-        // /*
-        // Apply fade to trails
-        junctionContext.globalAlpha = 0.1; // 0.2;
-        junctionContext.globalCompositeOperation = 'darker';
+        document.body.addEventListener( 'keypress', this.keyHandler );
+
+        window.onresize = this.resize.bind( this );
+
+        this.resize();
+        this.playPause();
+    };
+
+    this.resize = function()
+    {
+        // Should probably do something fancy re: resizing, but nothing for now
+        var width = Math.floor( window.innerWidth / this.spacing );
+        canvas.width = width * this.spacing - this.spacing;
+        canvas.style.left = ( window.innerWidth - canvas.width ) * 0.5 + 'px';
+
+        var height = Math.floor( window.innerHeight / this.spacing );
+        canvas.height = height * this.spacing - this.spacing;
+
+
+        if ( ! junctionCanvas )
+        {
+            junctionCanvas = document.createElement( 'canvas' );
+            junctionContext = junctionCanvas.getContext( '2d' );
+        }
+
+        junctionCanvas.width = canvas.width;
+        junctionCanvas.height = canvas.height;
         junctionContext.fillStyle = '#000';
         junctionContext.fillRect( 0, 0, canvas.width, canvas.height );
 
-        // Reset for drawing new point
+
+        this.rows = canvas.height / this.spacing;
+        this.cols = canvas.width / this.spacing;
+
+
+        this.bounds.t = 0 + this.spacing;
+        this.bounds.r = canvas.width - this.spacing;
+        this.bounds.b = canvas.height - this.spacing;
+        this.bounds.l = 0 + this.spacing;
+
+
+        // console.log( this.agents );
+        var arr = [];
+        for ( var i = 0; i < this.agents.length; i++ )
+        {
+            if ( ! this.isOutOfBounds( this.agents[ i ].p ) )
+            {
+                arr.push( this.agents[ i ] );
+            }
+        }
+        this.agents = arr;
+
+        if ( ! this.interval )
+            this.draw();
+    };
+
+
+
+
+
+    // EVENT HANDLERS
+
+    this.keyHandler = function( e )
+    {
+        // console.log( 'Key pressed:', e.charCode );
+        if ( e.charCode == 112 || e.charCode == 80 ) // p
+            houseFlies.playPause();
+
+        if ( e.charCode == 114 || e.charCode == 82 ) // r
+            houseFlies.reset();
+    };
+
+
+    this.reset = function()
+    {
         junctionContext.globalAlpha = 1;
         junctionContext.globalCompositeOperation = 'source-over';
-        // */
-    }
+        junctionContext.fillStyle = '#000';
+        junctionContext.fillRect( 0, 0, canvas.width, canvas.height );
+
+        houseFlies.agents = [];
+        houseFlies.calcs = '0';
+
+        this.draw();
+    };
 
 
-	context.drawImage( junctionCanvas, 0, 0 );
+    this.playPause = function()
+    {
+        // console.log( 'playPause:', interval );
+        if ( ! this.interval )
+        {
+            if ( this.agents.length == 0 )
+            {
+                this.addAgent();
+            }
+
+            this.interval = requestAnimationFrame( this.update.bind( this ) );
+        }
+        else
+        {
+            cancelAnimationFrame( this.interval );
+            this.interval = null;
+        }
+    };
 
 
-	var hw = 10;
-	for ( var i = 0; i < houseFlies.agents.length; i++ )
-	{
-		agent = houseFlies.agents[ i ];
 
-		if ( agent.draw )
-		{
-			agent.draw = false;
-			var pos = 15; // Math.round( junction.getOpacity() * cacheMax );
-			var sq = Math.sqrt( cacheMax );
-			var y = Math.floor( pos / sq ) * hw;
-			var x = pos % sq * hw;
-			junctionContext.drawImage( cache, x, y, hw, hw, agent.p.x - hw * 0.5, agent.p.y - hw * 0.5, hw, hw );
-		}
 
-		agent.p.x += agent.v.x;
-		agent.p.y += agent.v.y;
 
-		// Draw current agent
-		context.drawImage( cache, 40, 0, hw, hw, agent.p.x - hw * 0.5, agent.p.y - hw * 0.5, hw, hw );
-	}
-}
+    this.addAgent = function()
+    {
+        // Needs to be rewritten to use flat list of grid points
+        var start = new Point( Math.floor( this.cols * 0.5 ), Math.floor( this.rows * 0.5 ) );
+        start.x *= this.spacing;
+        start.y *= this.spacing;
+
+        var agent = new Agent();
+        agent.p.y = start.y;
+        agent.p.x = start.x;
+
+        // Return a cardinal direction
+        agent.a = Math.floor( Math.random() * 4 ) * 0.5 * Math.PI;
+        agent.v = this.velocity;
+
+        this.agents.push( agent );
+    };
+
+
+
+
+    this.update = function()
+    {
+        if ( this.interval == null ) return;
+
+        if ( debug ) stats.begin();
+
+        requestAnimationFrame( this.update.bind( this ) );
+
+        this.draw();
+
+        var agent;
+        for ( var i = 0; i < this.agents.length; i++ )
+        {
+            agent = this.agents[ i ];
+            agent.p.x += agent.vec().x;
+            agent.p.y += agent.vec().y;
+
+
+            // At junction, so change angle
+            if ( agent.p.x % this.spacing == 0
+                    && agent.p.y % this.spacing == 0
+                    )
+            {
+                agent.draw = true;
+
+                var w = 0; // While count
+                var next;
+                var angles = agent.getNewAngles();
+                var a = angles[ w ];
+
+                if ( this.isAtBounds( agent.p ) )
+                {
+                    var calcs = 0;
+                    debugTotals.updates++;
+                    debugTotals.calcs++;
+
+                    next = agent.getNextPosition( a );
+
+                    while ( this.isOutOfBounds( next ) )
+                    {
+                        calcs++;
+                        debugTotals.calcs++;
+
+                        if ( calcs > debugTotals.max )
+                            debugTotals.max = calcs;
+
+                        if ( w >= angles.length ) // Assumes two possible angles
+                        {
+                            alert( 'Exiting; caught in a while loop' );
+                            clearInterval( this.interval );
+                            this.interval = null;
+                            break;
+                        }
+
+                        a = angles[ w ];
+                        next = agent.getNextPosition( a );
+
+                        w++;
+                    }
+                }
+
+                agent.a = a;
+            }
+        }
+
+        // Add agents
+        if ( this.agents.length < this.fliesMax )
+        {
+            if ( this.agents.length == 0
+                    || ( this.agents.length >= 1
+                            && new Date().getTime() - this.agents[ this.agents.length - 1 ].created.getTime() > this.timeSpawn
+                            )
+                    )
+            {
+                this.addAgent();
+            }
+        }
+        else if ( this.agents.length > this.fliesMax )
+        {
+            // Think of the children!
+            this.agents = this.agents.slice( this.agents.length - this.fliesMax );
+        }
+
+        // Update GUI
+        this.fliesCurrent = this.agents.length;
+
+        if ( debugTotals.updates > 1 && debugTotals.updates % 60 == 0 )
+        {
+            this.calcs = Number( debugTotals.calcs / debugTotals.updates ).toFixed( 5 );
+        }
+
+        if ( debug ) stats.end();
+    };
+
+
+    this.draw = function()
+    {
+        if ( this.fadeOut )
+        {
+            // Apply fade to trails
+            junctionContext.globalAlpha = 0.1;
+            junctionContext.globalCompositeOperation = 'darker';
+            junctionContext.fillStyle = '#000';
+            junctionContext.fillRect( 0, 0, canvas.width, canvas.height );
+
+            // Reset for drawing new point
+            junctionContext.globalAlpha = 1;
+            junctionContext.globalCompositeOperation = 'source-over';
+        }
+        context.drawImage( junctionCanvas, 0, 0 );
+
+        var agent;
+        var hw = 10;
+        var time = new Date().getTime();
+        for ( var i = 0; i < this.agents.length; i++ )
+        {
+            agent = this.agents[ i ];
+
+            // Draw trail, always using the same green dot
+            if ( agent.draw )
+            {
+                agent.draw = false;
+                var pos = 15; // Position is set to 15 to force use of the darker green circle
+                var sq = Math.sqrt( cacheMax );
+                var y = Math.floor( pos / sq ) * hw;
+                var x = pos % sq * hw;
+
+                junctionContext.drawImage( cache, x, y, hw, hw, agent.p.x - hw * 0.5, agent.p.y - hw * 0.5, hw, hw );
+            }
+
+            // Draw current agent based on age
+            var heat = 0;
+            var diff = time - agent.created.getTime();
+            if ( diff < 1600 )
+            {
+                heat = 3 - Math.floor( diff / 400 );
+            }
+            // console.log( heat );
+
+            context.drawImage( cache, 40, heat * 10, hw, hw, agent.p.x - hw * 0.5, agent.p.y - hw * 0.5, hw, hw );
+        }
+    };
+
+    this.isAtBounds = function( p )
+    {
+        return ( p.x == this.bounds.r
+                    || p.x == this.bounds.l
+                    || p.y == this.bounds.t
+                    || p.y == this.bounds.b
+                    );
+    };
+
+    this.isOutOfBounds = function( p )
+    {
+        return ( p.x < this.bounds.l
+                    || p.x > this.bounds.r
+                    || p.y < this.bounds.t
+                    || p.y > this.bounds.b
+                    );
+    };
+
+};
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -524,14 +429,14 @@ function buildCache()
 			tempContext.fill();
 			i++;
 		}
+
+        // Agents
+        var yellow = parseInt( ( y / rows ) * 255 );
+        tempContext.fillStyle = 'rgba( 255, 255, ' + yellow + ', 1 )';
+        tempContext.beginPath();
+        tempContext.arc( hw * cols + offset , hw * y + offset, 5, 0, Math.PI * 2 );
+        tempContext.fill();
 	}
-
-
-	// Agents
-	tempContext.fillStyle = 'yellow';
-	tempContext.beginPath();
-	tempContext.arc( hw * cols + offset , offset, 5, 0, Math.PI * 2 );
-	tempContext.fill();
 
 	cache = temp;
 }
@@ -539,7 +444,32 @@ function buildCache()
 
 
 
-window.onload = init;
-window.onresize = resize;
+window.onload = function()
+{
+    if ( debug )
+    {
+        stats = new Stats();
+        stats.setMode(0);
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.left = '0px';
+        stats.domElement.style.top = '0px';
+        document.body.appendChild( stats.domElement );
+    }
 
+    buildCache();
 
+    houseFlies = new HouseFlyAgents();
+
+    gui = new dat.GUI();
+    gui.add( houseFlies, 'fliesMax', 1, 5000 ).step( 1 );
+    gui.add( houseFlies, 'timeSpawn', 0, 1000 );
+    gui.add( houseFlies, 'fadeOut' );
+    gui.add( houseFlies, 'reset' );
+    gui.add( houseFlies, 'playPause' );
+
+    var guiDebug = gui.addFolder( 'debug' );
+    guiDebug.add( houseFlies, 'fliesCurrent' ).listen();
+    guiDebug.add( houseFlies, 'calcs' ).listen();
+
+    houseFlies.init();
+};

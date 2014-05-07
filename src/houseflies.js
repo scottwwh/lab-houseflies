@@ -64,7 +64,7 @@ var junctionContext;
 
 var debug = true;
 var debugTotals = { updates: 0, calcs: 0, max: 0 }
-var stats, gui, houseFlies;
+var stats, gui, houseFlies, cache;
 
 
 var HouseFlyAgents = function()
@@ -114,10 +114,10 @@ var HouseFlyAgents = function()
             junctionContext = junctionCanvas.getContext( '2d' );
         }
 
+
+        // Clears the canvas
         junctionCanvas.width = canvas.width;
         junctionCanvas.height = canvas.height;
-        junctionContext.fillStyle = '#000';
-        junctionContext.fillRect( 0, 0, canvas.width, canvas.height );
 
 
         this.rows = canvas.height / this.spacing;
@@ -140,6 +140,7 @@ var HouseFlyAgents = function()
             }
         }
         this.agents = arr;
+
 
         if ( ! this.interval )
             this.draw();
@@ -317,6 +318,7 @@ var HouseFlyAgents = function()
 
     this.draw = function()
     {
+        // Fade trails
         if ( this.fadeOut )
         {
             // Apply fade to trails
@@ -331,8 +333,8 @@ var HouseFlyAgents = function()
         }
         context.drawImage( junctionCanvas, 0, 0 );
 
+        // Draw agents
         var agent;
-        var hw = 10;
         var time = new Date().getTime();
         for ( var i = 0; i < this.agents.length; i++ )
         {
@@ -342,24 +344,18 @@ var HouseFlyAgents = function()
             if ( agent.draw )
             {
                 agent.draw = false;
-                var pos = 15; // Position is set to 15 to force use of the darker green circle
-                var sq = Math.sqrt( cacheMax );
-                var y = Math.floor( pos / sq ) * hw;
-                var x = pos % sq * hw;
-
-                junctionContext.drawImage( cache, x, y, hw, hw, agent.p.x - hw * 0.5, agent.p.y - hw * 0.5, hw, hw );
+                junctionContext.drawImage( cache.cache, cache.hw * 4, 0, cache.hw, cache.hw, agent.p.x - cache.hw * 0.5, agent.p.y - cache.hw * 0.5, cache.hw, cache.hw );
             }
 
-            // Draw current agent based on age
-            var heat = 0;
+            // Draw agent sprite based on age
+            var age = 3;
             var diff = time - agent.created.getTime();
             if ( diff < 1600 )
             {
-                heat = 3 - Math.floor( diff / 400 );
+                age = Math.floor( diff / 400 );
             }
-            // console.log( heat );
 
-            context.drawImage( cache, 40, heat * 10, hw, hw, agent.p.x - hw * 0.5, agent.p.y - hw * 0.5, hw, hw );
+            context.drawImage( cache.cache, age * cache.hw, 0, cache.hw, cache.hw, agent.p.x - cache.hw * 0.5, agent.p.y - cache.hw * 0.5, cache.hw, cache.hw );
         }
     };
 
@@ -380,66 +376,75 @@ var HouseFlyAgents = function()
                     || p.y > this.bounds.b
                     );
     };
-
 };
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-var cacheMax = 16;
-var temp, tempContext;
-var cache = new Image();
-
-function buildCache()
+var Sprites = function()
 {
-	temp = document.createElement( 'canvas' );
-	temp.height = temp.width = 128;
-	temp.name = "junctions";
-	tempContext = temp.getContext( '2d' );
+    this.cache = new Image();
+
+	this.canvas= document.createElement( 'canvas' );
+    this.canvas.height = this.canvas.width = 128;
+    this.canvas.name = "junctions";
+
+    this.context = this.canvas.getContext( '2d' );
+    // document.body.appendChild( this.canvas );
 
 
 	// Junctions
-	var hw = 10;
-	var offset = hw * 0.5;
-	var junctionRadius = 4;
-	var rows, cols;
-	rows = cols = Math.sqrt( cacheMax );
-	// console.log( rows, cols );
+	this.hw = 20;
+    this.offset = this.hw * 0.5;
 
-	var i = 0;
-	for ( var y = 0; y < rows; y++ )
+    var cols = 5;
+    var radiusAgents = this.hw * 0.3;
+    var radiusTrail = this.hw * 0.3;
+
+	for ( var x = 0; x < cols; x++ )
 	{
-		for ( var x = 0; x < cols; x++ )
-		{
-			var green = Number( Math.floor( i / cacheMax * 128 ) ).toString( 16 );
-			green = ( green.length == 1 ) ? '0' + green : green ;
-			tempContext.fillStyle = "#00" + green + "00";
-			tempContext.beginPath();
-			tempContext.arc( x * hw + offset, y * hw + offset, junctionRadius, 0, Math.PI * 2 );
-			tempContext.fill();
-			i++;
-		}
+        var radius = radiusAgents;
+        var yellow = parseInt( ( ( cols - x ) / cols ) * 255 );
+        var col;
 
         // Agents
-        var yellow = parseInt( ( y / rows ) * 255 );
-        tempContext.fillStyle = 'rgba( 255, 255, ' + yellow + ', 1 )';
-        tempContext.beginPath();
-        tempContext.arc( hw * cols + offset , hw * y + offset, 5, 0, Math.PI * 2 );
-        tempContext.fill();
+        if ( x < cols - 1 )
+        {
+            radius = radiusTrail;
+            col = 'rgba( 255, 255, ' + yellow + ', 1 )';
+        }
+        else
+        {
+            col = 'green'
+        }
+
+
+        this.context.strokeStyle = 'none';
+        this.context.fillStyle = col;
+        this.context.beginPath();
+        this.context.arc( this.hw * x + this.offset, this.offset, radius, 0, Math.PI * 2 );
+        this.context.fill();
+        this.context.closePath();
+
+
+        // Add stroke for agents
+        if ( x < cols - 1 )
+        {
+            this.context.strokeStyle = col;
+            this.context.lineWidth = 1;
+            this.context.beginPath();
+            this.context.arc( this.hw * x + this.offset, this.offset, radius + ( cols - 2 - x ), 0, Math.PI * 2 );
+            this.context.stroke();
+            this.context.closePath();
+        }
 	}
 
-	cache = temp;
-}
+	this.cache = this.canvas;
+};
+
+
+
 
 
 
@@ -456,7 +461,7 @@ window.onload = function()
         document.body.appendChild( stats.domElement );
     }
 
-    buildCache();
+    cache = new Sprites();
 
     houseFlies = new HouseFlyAgents();
 

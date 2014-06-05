@@ -6,51 +6,37 @@
 
 		<style type="text/css" media="screen">
 
-		body { background-color: #000; color: #999; margin: 0; padding: 0; text-align: center; font-family: Arial, sans-serif; }
+            body { background-color: #000; color: #999; margin: 0; padding: 0; font-family: Arial, sans-serif; text-align: center; }
 
-        header{ display: inline-block; text-align: center; display: inline-block; background-color: rgba( 0, 0, 0, 0.75 ); text-align: center; margin: 0 auto; padding: 0.25em 1em; border-radius: 0 0 0.5em 0.5em; box-shadow: 0 0 1em 0.5em rgba( 0, 0, 0, 0.75 ); }
-            header h1 { margin: 0; padding: 0; }
+            a { color: #5e98ff; }
+
+            header section { display: inline-block; border-radius: 0 0 0.5em 0.5em;
+                                background-color: rgba( 0, 0, 0, 0.75 ); box-shadow: 0 0 1em 0.5em rgba( 0, 0, 0, 0.75 ); }
             header p { margin: 0.25em; padding: 0; }
 
-        a { color: #5e98ff; text-decoration: underline; }
-        a:hover { text-decoration: none; }
-
-		canvas { position: absolute; top: 10px; background-color: #000; display: inline-block; z-index: -1; }
-
-        /**
-         * DAT.gui overrides to indicate key handlers
-         */
-        .dg.ac { text-align: left; }
-        .dg.ac li.cr.function .property-name:first-letter { text-decoration: underline; }
+            canvas { position: absolute; top: 10px; background-color: #000; display: inline-block; z-index: -1; }
 
 
-		</style>
+            /**
+             * DAT.gui overrides to indicate key handlers
+             */
 
-        <script type="text/javascript">
+            .dg.ac { text-align: left; z-index: 501 !important; }
+            .dg.ac li.cr.function .property-name:first-letter { text-decoration: underline; }
 
-            var _gaq = _gaq || [];
-            _gaq.push(['_setAccount', 'UA-3494214-5']);
-            _gaq.push(['_setDomainName', 'syncretinal.com']);
-            _gaq.push(['_trackPageview']);
-
-            (function() {
-                var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-                ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-                var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-            })();
-
-        </script>
+        </style>
 
 	</head>
 	<body>
-		
 
         <header>
-            <h1>Houseflies</h1>
-            <p>Testing random motion that looks like houseflies stuck in a draft. <a href="https://github.com/scottwwh/lab-houseflies">Source on GitHub</a>.</p>
+            <section>
+                <h1>Houseflies</h1>
+                <p>Testing random motion that looks like houseflies stuck in a draft. <a href="https://github.com/scottwwh/lab-houseflies">Source on GitHub</a>.</p>
+            </section>
         </header>
 
-		<canvas />
+        <canvas></canvas>
 
         <script type="text/javascript" src="js/dat.gui.min.js"></script>
 		<script type="text/javascript" src="js/requestAnimationFrame.min.js"></script>

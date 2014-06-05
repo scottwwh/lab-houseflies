@@ -456,8 +456,8 @@ window.onload = function()
         stats = new Stats();
         stats.setMode(0);
         stats.domElement.style.position = 'absolute';
-        stats.domElement.style.left = '0px';
-        stats.domElement.style.top = '0px';
+        stats.domElement.style.right = '0px';
+        stats.domElement.style.bottom = '0px';
         document.body.appendChild( stats.domElement );
     }
 
@@ -466,6 +466,8 @@ window.onload = function()
     houseFlies = new HouseFlyAgents();
 
     gui = new dat.GUI();
+    gui.close();
+
     gui.add( houseFlies, 'fliesMax', 1, 5000 ).step( 1 );
     gui.add( houseFlies, 'timeSpawn', 0, 1000 );
     gui.add( houseFlies, 'fadeOut' );
